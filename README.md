@@ -47,14 +47,25 @@ This service uses URL-based API versioning.
 New versions will be introduced only when breaking changes are required,
 while maintaining backward compatibility for existing clients.
 
+## Development
+
+Common development commands:
+
+```bash
+make run    # run the service locally
+make build  # build binary
+make test   # run tests
+```
+
 ## Development Roadmap
 
 ### Phase 1 — Service Foundation
-- [ ] Initialize Go module
-- [ ] Basic HTTP server with graceful shutdown
-- [ ] Health check endpoint (`/health`)
-- [ ] Config loading (env / config file)
-- [ ] Structured logging
+- [x] Initialize Go module
+- [x] Basic HTTP server with graceful shutdown
+- [x] Health check endpoint (`/health`)
+- [x] Config loading (env / config file)
+- [x] Structured logging
+
 
 ### Phase 2 — Core API
 - [ ] Support query endpoint (`POST /v1/support/query`)
