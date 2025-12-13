@@ -37,6 +37,16 @@ focus on complex and sensitive cases.
 - Redis (caching, rate limiting)
 - PostgreSQL (metadata)
 
+## API Versioning
+
+This service uses URL-based API versioning.
+
+- Current version: `v1`
+- Example endpoint: `POST /v1/support/query`
+
+New versions will be introduced only when breaking changes are required,
+while maintaining backward compatibility for existing clients.
+
 ## Development Roadmap
 
 ### Phase 1 — Service Foundation
