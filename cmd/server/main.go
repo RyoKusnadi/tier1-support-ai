@@ -9,7 +9,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/RyoKusnadi/tier1-support-ai/internal/config"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/handler"
+	"github.com/RyoKusnadi/tier1-support-ai/internal/logger"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,13 +21,14 @@ func main() {
 
 	router.GET("/health", handler.Health)
 
+	cfg := config.Load()
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":" + cfg.Port,
 		Handler: router,
 	}
 
 	go func() {
-		log.Println("server starting on :8080")
+		logger.Info("server starting on :8080", nil)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen error: %v", err)
 		}
