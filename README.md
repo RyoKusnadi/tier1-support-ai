@@ -36,3 +36,42 @@ focus on complex and sensitive cases.
 - External LLM API
 - Redis (caching, rate limiting)
 - PostgreSQL (metadata)
+
+## Development Roadmap
+
+### Phase 1 — Service Foundation
+- [ ] Initialize Go module
+- [ ] Basic HTTP server with graceful shutdown
+- [ ] Health check endpoint (`/health`)
+- [ ] Config loading (env / config file)
+- [ ] Structured logging
+
+### Phase 2 — Core API
+- [ ] Support query endpoint (`POST /v1/support/query`)
+- [ ] Request validation
+- [ ] Tenant resolution (initially static config)
+- [ ] Language detection (explicit parameter)
+
+### Phase 3 — LLM Integration
+- [ ] LLM client abstraction
+- [ ] Timeout & retry handling
+- [ ] Prompt template for support answers
+- [ ] Confidence scoring strategy
+
+### Phase 4 — Knowledge Retrieval
+- [ ] Knowledge document model
+- [ ] Basic retrieval (in-memory / stub)
+- [ ] Retrieval-Augmented Generation (RAG) flow
+- [ ] Fallback when no relevant knowledge found
+
+### Phase 5 — Reliability & Cost Control
+- [ ] Rate limiting per tenant
+- [ ] Response caching
+- [ ] Token usage tracking
+- [ ] Budget guardrails
+
+### Phase 6 — Observability & Safety
+- [ ] Request logging
+- [ ] Latency metrics
+- [ ] Error tracking
+- [ ] Safe fallback for low-confidence responses
