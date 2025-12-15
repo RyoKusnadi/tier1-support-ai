@@ -12,19 +12,21 @@ import (
 	"github.com/RyoKusnadi/tier1-support-ai/internal/config"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/handler"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/logger"
+	router "github.com/RyoKusnadi/tier1-support-ai/internal/router"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	router := gin.New()
-	router.Use(gin.Recovery())
+	service := gin.New()
+	service.Use(gin.Recovery())
 
-	router.GET("/health", handler.Health)
+	service.GET("/health", handler.Health)
+	router.RegisterV1Routes(service)
 
 	cfg := config.Load()
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: router,
+		Handler: service,
 	}
 
 	go func() {
