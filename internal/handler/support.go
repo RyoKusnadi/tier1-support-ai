@@ -24,53 +24,63 @@ type SupportQueryResponse struct {
 	Language   string  `json:"language"`
 }
 
-// SupportQuery handles POST /v1/support/query requests
-func SupportQuery(llmClient llm.Client) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var req SupportQueryRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			logger.Error("invalid request", map[string]interface{}{
-				"error": err.Error(),
-			})
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "Invalid request: " + err.Error(),
-			})
-			return
-		}
+// SupportHandler handles support-related requests
+type SupportHandler struct {
+	llmClient llm.Client
+}
 
-		// Create LLM request
-		llmReq := &llm.Request{
-			Messages: []llm.Message{
-				{
-					Role:    "user",
-					Content: req.Question,
-				},
-			},
-			KnowledgeBase: req.KnowledgeBase,
-			Language:      req.Language,
-			TenantID:      req.TenantID,
-		}
-
-		// Generate answer using LLM
-		resp, err := llmClient.GenerateAnswer(c.Request.Context(), llmReq)
-		if err != nil {
-			logger.Error("failed to generate answer", map[string]interface{}{
-				"error":     err.Error(),
-				"tenant_id": req.TenantID,
-				"language":  req.Language,
-			})
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to generate answer",
-			})
-			return
-		}
-
-		// Return response
-		c.JSON(http.StatusOK, SupportQueryResponse{
-			Answer:     resp.Content,
-			Confidence: resp.Confidence,
-			TenantID:   req.TenantID,
-			Language:   req.Language,
-		})
+// NewSupportHandler creates a new support handler
+func NewSupportHandler(llmClient llm.Client) *SupportHandler {
+	return &SupportHandler{
+		llmClient: llmClient,
 	}
+}
+
+// SupportQuery handles POST /v1/support/query requests
+func (h *SupportHandler) SupportQuery(c *gin.Context) {
+	var req SupportQueryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("invalid request", map[string]interface{}{
+			"error": err.Error(),
+		})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request: " + err.Error(),
+		})
+		return
+	}
+
+	// Create LLM request
+	llmReq := &llm.Request{
+		Messages: []llm.Message{
+			{
+				Role:    "user",
+				Content: req.Question,
+			},
+		},
+		KnowledgeBase: req.KnowledgeBase,
+		Language:      req.Language,
+		TenantID:      req.TenantID,
+	}
+
+	// Generate answer using LLM
+	resp, err := h.llmClient.GenerateAnswer(c.Request.Context(), llmReq)
+	if err != nil {
+		logger.Error("failed to generate answer", map[string]interface{}{
+			"error":     err.Error(),
+			"tenant_id": req.TenantID,
+			"language":  req.Language,
+		})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to generate answer",
+		})
+		return
+	}
+
+	// Return response
+	c.JSON(http.StatusOK, SupportQueryResponse{
+		Answer:     resp.Content,
+		Confidence: resp.Confidence,
+		TenantID:   req.TenantID,
+		Language:   req.Language,
+	})
 }

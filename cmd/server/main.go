@@ -37,24 +37,26 @@ func main() {
 		log.Fatalf("failed to initialize LLM client: %v", err)
 	}
 
+	// Initialize handlers
+	supportHandler := handler.NewSupportHandler(llmClient)
+
 	router := gin.New()
 	router.Use(gin.Recovery())
 
-	service.GET("/health", handler.Health)
-	router.RegisterV1Routes(service)
+	router.GET("/health", handler.Health)
 
 	// Register support query endpoint
 	v1 := router.Group("/v1")
 	{
 		support := v1.Group("/support")
 		{
-			support.POST("/query", handler.SupportQuery(llmClient))
+			support.POST("/query", supportHandler.SupportQuery)
 		}
 	}
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: service,
+		Handler: router,
 	}
 
 	go func() {
