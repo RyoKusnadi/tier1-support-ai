@@ -10,18 +10,18 @@ import (
 
 // SupportQueryRequest represents the request body for support queries
 type SupportQueryRequest struct {
-	Question    string   `json:"question" binding:"required"`
-	TenantID    string   `json:"tenant_id" binding:"required"`
-	Language    string   `json:"language" binding:"required"`
+	Question      string   `json:"question" binding:"required"`
+	TenantID      string   `json:"tenant_id" binding:"required"`
+	Language      string   `json:"language" binding:"required"`
 	KnowledgeBase []string `json:"knowledge_base,omitempty"` // Optional knowledge base for RAG
 }
 
 // SupportQueryResponse represents the response for support queries
 type SupportQueryResponse struct {
-	Answer      string  `json:"answer"`
-	Confidence  float64 `json:"confidence"`
-	TenantID    string  `json:"tenant_id"`
-	Language    string  `json:"language"`
+	Answer     string  `json:"answer"`
+	Confidence float64 `json:"confidence"`
+	TenantID   string  `json:"tenant_id"`
+	Language   string  `json:"language"`
 }
 
 // SupportQuery handles POST /v1/support/query requests
@@ -55,9 +55,9 @@ func SupportQuery(llmClient llm.Client) gin.HandlerFunc {
 		resp, err := llmClient.GenerateAnswer(c.Request.Context(), llmReq)
 		if err != nil {
 			logger.Error("failed to generate answer", map[string]interface{}{
-				"error":    err.Error(),
+				"error":     err.Error(),
 				"tenant_id": req.TenantID,
-				"language": req.Language,
+				"language":  req.Language,
 			})
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Failed to generate answer",
@@ -74,4 +74,3 @@ func SupportQuery(llmClient llm.Client) gin.HandlerFunc {
 		})
 	}
 }
-

@@ -40,7 +40,8 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Recovery())
 
-	router.GET("/health", handler.Health)
+	service.GET("/health", handler.Health)
+	router.RegisterV1Routes(service)
 
 	// Register support query endpoint
 	v1 := router.Group("/v1")
@@ -53,7 +54,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: router,
+		Handler: service,
 	}
 
 	go func() {

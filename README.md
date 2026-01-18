@@ -38,7 +38,6 @@ focus on complex and sensitive cases.
 - PostgreSQL (metadata)
 
 ## API Versioning
-
 This service uses URL-based API versioning.
 
 - Current version: `v1`
@@ -56,6 +55,75 @@ make run    # run the service locally
 make build  # build binary
 make test   # run tests
 ```
+
+Configuration is provided via environment variables.
+
+
+## API Contract (v1)
+
+### POST /v1/support/query
+Handles Tier-1 customer support questions using AI-assisted responses.
+
+### Request
+
+```json
+{
+  "tenant_id": "shop-123",
+  "language": "en",
+  "question": "Where is my order?"
+}
+```
+
+| Field      | Type   | Required | Description               |
+|------------|--------|----------|---------------------------|
+| tenant_id  | string | Yes      | Tenant identifier         |
+| language   | string | Yes      | Language code (ISO 639-1) |
+| question   | string | Yes      | Customer question         |
+
+### Response — Success
+
+```json
+{
+  "answer": "Your order is on the way and will arrive tomorrow.",
+  "confidence": 0.87
+}
+```
+
+| Field      | Type   | Description                |
+|------------|--------|----------------------------|
+| answer     | string | AI-generated response      |
+| confidence | number | Confidence score (0.0–1.0) |
+
+### Response — Fallback (Low Confidence)
+
+```json
+{
+  "answer": "We are unable to confidently answer your question. Please contact customer support.",
+  "confidence": 0.32,
+  "fallback": true
+}
+```
+
+| Field    | Type    | Description                 |
+|----------|---------|-----------------------------|
+| fallback | boolean | Indicates fallback response |
+
+### Response — Error
+
+```json
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "language is required"
+  }
+}
+```
+
+| Code             | Description               |
+|------------------|---------------------------|
+| INVALID_REQUEST  | Request validation failed |
+| TENANT_NOT_FOUND | Unknown tenant            |
+| INTERNAL_ERROR   | Unexpected server error   |
 
 ## Development Roadmap
 
