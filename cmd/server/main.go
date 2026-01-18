@@ -11,22 +11,52 @@ import (
 
 	"github.com/RyoKusnadi/tier1-support-ai/internal/config"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/handler"
+	"github.com/RyoKusnadi/tier1-support-ai/internal/llm"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/logger"
-	router "github.com/RyoKusnadi/tier1-support-ai/internal/router"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	service := gin.New()
-	service.Use(gin.Recovery())
-
-	service.GET("/health", handler.Health)
-	router.RegisterV1Routes(service)
-
 	cfg := config.Load()
+
+	// Initialize LLM client
+	llmConfig := llm.Config{
+		Provider:     cfg.LLMProvider,
+		APIKey:       cfg.LLMAPIKey,
+		BaseURL:      cfg.LLMBaseURL,
+		DefaultModel: cfg.LLMDefaultModel,
+		MaxTokens:    cfg.LLMMaxTokens,
+		Temperature:  cfg.LLMTemperature,
+		Timeout:      cfg.LLMTimeout,
+		MaxRetries:   cfg.LLMMaxRetries,
+		RetryDelay:   cfg.LLMRetryDelay,
+	}
+
+	llmClient, err := llm.NewClient(llmConfig)
+	if err != nil {
+		log.Fatalf("failed to initialize LLM client: %v", err)
+	}
+
+	// Initialize handlers
+	supportHandler := handler.NewSupportHandler(llmClient)
+
+	router := gin.New()
+	router.Use(gin.Recovery())
+
+	router.GET("/health", handler.Health)
+
+	// Register support query endpoint
+	v1 := router.Group("/v1")
+	{
+		support := v1.Group("/support")
+		{
+			support.POST("/query", supportHandler.SupportQuery)
+		}
+	}
+
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: service,
+		Handler: router,
 	}
 
 	go func() {

@@ -5,9 +5,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterV1Routes(r *gin.Engine) {
+func RegisterV1Routes(r *gin.Engine, supportHandler *handler.SupportHandler) {
 	v1 := r.Group("/v1")
 	{
-		v1.POST("/support/query", handler.SupportQuery)
+		v1.POST("/support/query", supportHandler.SupportQuery)
 	}
 }

@@ -3,59 +3,84 @@ package handler
 import (
 	"net/http"
 
-	"github.com/RyoKusnadi/tier1-support-ai/internal/config"
+	"github.com/RyoKusnadi/tier1-support-ai/internal/llm"
+	"github.com/RyoKusnadi/tier1-support-ai/internal/logger"
 	"github.com/gin-gonic/gin"
 )
 
+// SupportQueryRequest represents the request body for support queries
 type SupportQueryRequest struct {
-	TenantID string `json:"tenant_id" binding:"required"`
-	Language string `json:"language" binding:"required"`
-	Question string `json:"question" binding:"required"`
+	Question      string   `json:"question" binding:"required"`
+	TenantID      string   `json:"tenant_id" binding:"required"`
+	Language      string   `json:"language" binding:"required"`
+	KnowledgeBase []string `json:"knowledge_base,omitempty"` // Optional knowledge base for RAG
 }
 
+// SupportQueryResponse represents the response for support queries
 type SupportQueryResponse struct {
 	Answer     string  `json:"answer"`
 	Confidence float64 `json:"confidence"`
-	Fallback   bool    `json:"fallback,omitempty"`
+	TenantID   string  `json:"tenant_id"`
+	Language   string  `json:"language"`
 }
 
-func SupportQuery(c *gin.Context) {
+// SupportHandler handles support-related requests
+type SupportHandler struct {
+	llmClient llm.Client
+}
+
+// NewSupportHandler creates a new support handler
+func NewSupportHandler(llmClient llm.Client) *SupportHandler {
+	return &SupportHandler{
+		llmClient: llmClient,
+	}
+}
+
+// SupportQuery handles POST /v1/support/query requests
+func (h *SupportHandler) SupportQuery(c *gin.Context) {
 	var req SupportQueryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("invalid request", map[string]interface{}{
+			"error": err.Error(),
+		})
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": gin.H{
-				"code":    "INVALID_REQUEST",
-				"message": err.Error(),
-			},
+			"error": "Invalid request: " + err.Error(),
 		})
 		return
 	}
 
-	if !config.Tenants[req.TenantID] {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": gin.H{
-				"code":    "TENANT_NOT_FOUND",
-				"message": "tenant not found",
+	// Create LLM request
+	llmReq := &llm.Request{
+		Messages: []llm.Message{
+			{
+				Role:    "user",
+				Content: req.Question,
 			},
+		},
+		KnowledgeBase: req.KnowledgeBase,
+		Language:      req.Language,
+		TenantID:      req.TenantID,
+	}
+
+	// Generate answer using LLM
+	resp, err := h.llmClient.GenerateAnswer(c.Request.Context(), llmReq)
+	if err != nil {
+		logger.Error("failed to generate answer", map[string]interface{}{
+			"error":     err.Error(),
+			"tenant_id": req.TenantID,
+			"language":  req.Language,
+		})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to generate answer",
 		})
 		return
 	}
 
-	if !config.SupportedLanguages[req.Language] {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": gin.H{
-				"code":    "UNSUPPORTED_LANGUAGE",
-				"message": "language not supported",
-			},
-		})
-		return
-	}
-
-	resp := SupportQueryResponse{
-		Answer:     "Thank you for your question. Our support team will assist you shortly.",
-		Confidence: 0.5,
-		Fallback:   true,
-	}
-
-	c.JSON(http.StatusOK, resp)
+	// Return response
+	c.JSON(http.StatusOK, SupportQueryResponse{
+		Answer:     resp.Content,
+		Confidence: resp.Confidence,
+		TenantID:   req.TenantID,
+		Language:   req.Language,
+	})
 }
