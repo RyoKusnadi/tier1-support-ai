@@ -11,17 +11,46 @@ import (
 
 	"github.com/RyoKusnadi/tier1-support-ai/internal/config"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/handler"
+	"github.com/RyoKusnadi/tier1-support-ai/internal/llm"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/logger"
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	cfg := config.Load()
+
+	// Initialize LLM client
+	llmConfig := llm.Config{
+		Provider:     cfg.LLMProvider,
+		APIKey:       cfg.LLMAPIKey,
+		BaseURL:      cfg.LLMBaseURL,
+		DefaultModel: cfg.LLMDefaultModel,
+		MaxTokens:    cfg.LLMMaxTokens,
+		Temperature:  cfg.LLMTemperature,
+		Timeout:      cfg.LLMTimeout,
+		MaxRetries:   cfg.LLMMaxRetries,
+		RetryDelay:   cfg.LLMRetryDelay,
+	}
+
+	llmClient, err := llm.NewClient(llmConfig)
+	if err != nil {
+		log.Fatalf("failed to initialize LLM client: %v", err)
+	}
+
 	router := gin.New()
 	router.Use(gin.Recovery())
 
 	router.GET("/health", handler.Health)
 
-	cfg := config.Load()
+	// Register support query endpoint
+	v1 := router.Group("/v1")
+	{
+		support := v1.Group("/support")
+		{
+			support.POST("/query", handler.SupportQuery(llmClient))
+		}
+	}
+
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
 		Handler: router,

@@ -68,16 +68,16 @@ make test   # run tests
 
 
 ### Phase 2 — Core API
-- [ ] Support query endpoint (`POST /v1/support/query`)
-- [ ] Request validation
-- [ ] Tenant resolution (initially static config)
-- [ ] Language detection (explicit parameter)
+- [X] Support query endpoint (`POST /v1/support/query`)
+- [X] Request validation
+- [X] Tenant resolution (initially static config)
+- [X] Language detection (explicit parameter)
 
 ### Phase 3 — LLM Integration
-- [ ] LLM client abstraction
-- [ ] Timeout & retry handling
-- [ ] Prompt template for support answers
-- [ ] Confidence scoring strategy
+- [x] LLM client abstraction
+- [x] Timeout & retry handling
+- [x] Prompt template for support answers
+- [x] Confidence scoring strategy
 
 ### Phase 4 — Knowledge Retrieval
 - [ ] Knowledge document model
