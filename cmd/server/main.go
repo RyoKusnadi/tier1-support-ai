@@ -13,6 +13,7 @@ import (
 	"github.com/RyoKusnadi/tier1-support-ai/internal/handler"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/llm"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/logger"
+	"github.com/RyoKusnadi/tier1-support-ai/internal/reliability"
 	"github.com/gin-gonic/gin"
 )
 
@@ -37,8 +38,17 @@ func main() {
 		log.Fatalf("failed to initialize LLM client: %v", err)
 	}
 
+	// Initialize reliability & cost-control primitives (Phase 5)
+	rateLimiter := reliability.NewTenantRateLimiter(cfg.TenantRateLimitPerSec, cfg.TenantRateLimitBurst)
+	responseCache := reliability.NewResponseCache[handler.SupportQueryResponse](time.Duration(cfg.ResponseCacheTTLSeconds) * time.Second)
+	tokenUsageTracker := reliability.NewTokenUsageTracker(time.Duration(cfg.TokenUsageWindowHours) * time.Hour)
+	var budgetGuard *reliability.BudgetGuard
+	if cfg.TenantTokenBudget > 0 {
+		budgetGuard = reliability.NewBudgetGuard(tokenUsageTracker, cfg.TenantTokenBudget)
+	}
+
 	// Initialize handlers
-	supportHandler := handler.NewSupportHandler(llmClient)
+	supportHandler := handler.NewSupportHandler(llmClient, rateLimiter, responseCache, tokenUsageTracker, budgetGuard)
 
 	router := gin.New()
 	router.Use(gin.Recovery())
