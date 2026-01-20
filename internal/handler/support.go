@@ -7,6 +7,7 @@ import (
 	"github.com/RyoKusnadi/tier1-support-ai/internal/knowledge"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/llm"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/logger"
+	"github.com/RyoKusnadi/tier1-support-ai/internal/observability"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/reliability"
 	"github.com/gin-gonic/gin"
 )
@@ -39,6 +40,9 @@ type SupportHandler struct {
 	responseCache *reliability.ResponseCache[SupportQueryResponse]
 	tokenUsage    *reliability.TokenUsageTracker
 	budgetGuard   *reliability.BudgetGuard
+
+	// Phase 6 — Observability
+	metrics *observability.Metrics
 }
 
 // NewSupportHandler creates a new support handler
@@ -48,6 +52,7 @@ func NewSupportHandler(
 	responseCache *reliability.ResponseCache[SupportQueryResponse],
 	tokenUsage *reliability.TokenUsageTracker,
 	budgetGuard *reliability.BudgetGuard,
+	metrics *observability.Metrics,
 ) *SupportHandler {
 	return &SupportHandler{
 		llmClient:           llmClient,
@@ -57,6 +62,7 @@ func NewSupportHandler(
 		responseCache:       responseCache,
 		tokenUsage:          tokenUsage,
 		budgetGuard:         budgetGuard,
+		metrics:             metrics,
 	}
 }
 
@@ -67,13 +73,21 @@ func (h *SupportHandler) SupportQuery(c *gin.Context) {
 		logger.Error("invalid request", map[string]interface{}{
 			"error": err.Error(),
 		})
+		if h.metrics != nil {
+			h.metrics.ErrorsTotal.Add(1)
+		}
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid request: " + err.Error(),
+			"error": gin.H{
+				"code":    "INVALID_REQUEST",
+				"message": "Invalid request: " + err.Error(),
+			},
 		})
 		return
 	}
 
-	// Phase 5: per-tenant rate limiting
+	// Phase 6: attach tenant_id to request context for logging/middleware
+	c.Set("tenant_id", req.TenantID)
+
 	if h.rateLimiter != nil && !h.rateLimiter.Allow(req.TenantID) {
 		logger.Error("rate limit exceeded", map[string]interface{}{
 			"tenant_id": req.TenantID,
@@ -91,8 +105,14 @@ func (h *SupportHandler) SupportQuery(c *gin.Context) {
 	if h.responseCache != nil {
 		cacheKey := buildCacheKey(req.TenantID, req.Language, req.Question)
 		if cached, ok := h.responseCache.Get(cacheKey); ok {
+			if h.metrics != nil {
+				h.metrics.CacheHitsTotal.Add(1)
+			}
 			c.JSON(http.StatusOK, cached)
 			return
+		}
+		if h.metrics != nil {
+			h.metrics.CacheMissesTotal.Add(1)
 		}
 	}
 
@@ -142,6 +162,9 @@ func (h *SupportHandler) SupportQuery(c *gin.Context) {
 	// Generate answer using LLM
 	// Phase 5: budget guardrails (pre-call check)
 	if h.budgetGuard != nil && h.budgetGuard.Enabled() && !h.budgetGuard.Allow(req.TenantID) {
+		if h.metrics != nil {
+			h.metrics.BudgetBlockedTotal.Add(1)
+		}
 		remaining, enabled, resetAt := h.budgetGuard.Remaining(req.TenantID)
 		logger.Error("token budget exceeded", map[string]interface{}{
 			"tenant_id": req.TenantID,
@@ -165,8 +188,14 @@ func (h *SupportHandler) SupportQuery(c *gin.Context) {
 			"tenant_id": req.TenantID,
 			"language":  req.Language,
 		})
+		if h.metrics != nil {
+			h.metrics.ErrorsTotal.Add(1)
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate answer",
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to generate answer",
+			},
 		})
 		return
 	}

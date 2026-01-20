@@ -20,9 +20,9 @@ type TokenUsage struct {
 type TokenUsageTracker struct {
 	window time.Duration
 
-	mu     sync.Mutex
+	mu      sync.Mutex
 	tenants map[string]*TokenUsage
-	now    func() time.Time
+	now     func() time.Time
 }
 
 func NewTokenUsageTracker(window time.Duration) *TokenUsageTracker {
@@ -84,5 +84,3 @@ func (t *TokenUsageTracker) Get(tenantID string) (TokenUsage, bool) {
 
 	return *u, true
 }
-
-
