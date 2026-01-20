@@ -154,13 +154,30 @@ Handles Tier-1 customer support questions using AI-assisted responses.
 - [x] Fallback when no relevant knowledge found
 
 ### Phase 5 — Reliability & Cost Control
-- [ ] Rate limiting per tenant
-- [ ] Response caching
-- [ ] Token usage tracking
-- [ ] Budget guardrails
+- [x] Rate limiting per tenant
+- [x] Response caching
+- [x] Token usage tracking
+- [x] Budget guardrails
 
 ### Phase 6 — Observability & Safety
 - [ ] Request logging
 - [ ] Latency metrics
 - [ ] Error tracking
 - [ ] Safe fallback for low-confidence responses
+
+## Reliability & Cost Control (Phase 5)
+
+Phase 5 adds a first pass of production-oriented safeguards around LLM usage:
+
+- **Per-tenant rate limiting**: simple in-memory token-bucket limiter that returns `429 RATE_LIMIT_EXCEEDED` when a tenant sends too many requests per second.
+- **Response caching**: in-memory TTL cache for identical `(tenant_id, language, question)` triples, reducing duplicate LLM calls and latency.
+- **Token usage tracking**: per-tenant counters of `TokensUsed` over a sliding window, updated after each successful LLM call.
+- **Budget guardrails**: optional per-tenant token budget; once exceeded within the current window, further LLM calls are blocked with `429 BUDGET_EXCEEDED`.
+
+These behaviors are configured via environment variables:
+
+- `TENANT_RATE_LIMIT_PER_SEC` (float, default `5.0`): allowed requests per tenant per second.
+- `TENANT_RATE_LIMIT_BURST` (int, default `10`): burst capacity for the per-tenant token bucket.
+- `RESPONSE_CACHE_TTL_SECONDS` (int, default `300`): TTL for cached responses in seconds.
+- `TOKEN_USAGE_WINDOW_HOURS` (int, default `24`): window length for token accounting, per tenant.
+- `TENANT_TOKEN_BUDGET` (int, default `0` = disabled): maximum tokens allowed per tenant per window before budget guardrails reject further calls.

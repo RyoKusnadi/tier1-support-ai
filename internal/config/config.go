@@ -19,6 +19,18 @@ type Config struct {
 	LLMTimeout      int
 	LLMMaxRetries   int
 	LLMRetryDelay   int
+
+	// Reliability & cost control (Phase 5)
+	// Per-tenant rate limiting (token bucket)
+	TenantRateLimitPerSec float64
+	TenantRateLimitBurst  int
+
+	// Response cache TTL in seconds
+	ResponseCacheTTLSeconds int
+
+	// Token usage tracking window (hours) and per-tenant token budget per window
+	TokenUsageWindowHours int
+	TenantTokenBudget     int
 }
 
 func Load() Config {
@@ -51,6 +63,13 @@ func Load() Config {
 	llmMaxRetries := getIntEnv("LLM_MAX_RETRIES", 3)
 	llmRetryDelay := getIntEnv("LLM_RETRY_DELAY", 100)
 
+	// Reliability & cost control (Phase 5)
+	tenantRateLimitPerSec := getFloatEnv("TENANT_RATE_LIMIT_PER_SEC", 5.0)
+	tenantRateLimitBurst := getIntEnv("TENANT_RATE_LIMIT_BURST", 10)
+	responseCacheTTLSeconds := getIntEnv("RESPONSE_CACHE_TTL_SECONDS", 300)
+	tokenUsageWindowHours := getIntEnv("TOKEN_USAGE_WINDOW_HOURS", 24)
+	tenantTokenBudget := getIntEnv("TENANT_TOKEN_BUDGET", 0) // 0 = disabled
+
 	return Config{
 		Port: port,
 		Env:  env,
@@ -64,6 +83,12 @@ func Load() Config {
 		LLMTimeout:      llmTimeout,
 		LLMMaxRetries:   llmMaxRetries,
 		LLMRetryDelay:   llmRetryDelay,
+
+		TenantRateLimitPerSec:   tenantRateLimitPerSec,
+		TenantRateLimitBurst:    tenantRateLimitBurst,
+		ResponseCacheTTLSeconds: responseCacheTTLSeconds,
+		TokenUsageWindowHours:   tokenUsageWindowHours,
+		TenantTokenBudget:       tenantTokenBudget,
 	}
 }
 
