@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/RyoKusnadi/tier1-support-ai/internal/knowledge"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/llm"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/logger"
 	"github.com/gin-gonic/gin"
@@ -22,17 +23,22 @@ type SupportQueryResponse struct {
 	Confidence float64 `json:"confidence"`
 	TenantID   string  `json:"tenant_id"`
 	Language   string  `json:"language"`
+	Fallback   bool    `json:"fallback,omitempty"`
 }
 
 // SupportHandler handles support-related requests
 type SupportHandler struct {
-	llmClient llm.Client
+	llmClient           llm.Client
+	retriever           knowledge.Retriever
+	confidenceThreshold float64
 }
 
 // NewSupportHandler creates a new support handler
 func NewSupportHandler(llmClient llm.Client) *SupportHandler {
 	return &SupportHandler{
-		llmClient: llmClient,
+		llmClient:           llmClient,
+		retriever:           knowledge.NewInMemoryRetriever(),
+		confidenceThreshold: 0.7,
 	}
 }
 
@@ -49,7 +55,37 @@ func (h *SupportHandler) SupportQuery(c *gin.Context) {
 		return
 	}
 
-	// Create LLM request
+	// Retrieve relevant knowledge (Phase 4 - Knowledge Retrieval)
+	var retrievedKB []string
+	if h.retriever != nil {
+		kb, err := h.retriever.Retrieve(c.Request.Context(), req.TenantID, req.Language, req.Question)
+		if err != nil {
+			logger.Error("knowledge retrieval failed", map[string]interface{}{
+				"error":     err.Error(),
+				"tenant_id": req.TenantID,
+				"language":  req.Language,
+			})
+		} else {
+			retrievedKB = kb
+		}
+	}
+
+	// Fallback when no relevant knowledge is found (Phase 4 requirement)
+	if len(retrievedKB) == 0 {
+		c.JSON(http.StatusOK, SupportQueryResponse{
+			Answer:     "We are unable to confidently answer your question. Please contact customer support.",
+			Confidence: 0.0,
+			TenantID:   req.TenantID,
+			Language:   req.Language,
+			Fallback:   true,
+		})
+		return
+	}
+
+	// Merge retrieved knowledge with any explicit knowledge from the request
+	mergedKB := append(retrievedKB, req.KnowledgeBase...)
+
+	// Create LLM request (RAG-style: question + retrieved knowledge)
 	llmReq := &llm.Request{
 		Messages: []llm.Message{
 			{
@@ -57,7 +93,7 @@ func (h *SupportHandler) SupportQuery(c *gin.Context) {
 				Content: req.Question,
 			},
 		},
-		KnowledgeBase: req.KnowledgeBase,
+		KnowledgeBase: mergedKB,
 		Language:      req.Language,
 		TenantID:      req.TenantID,
 	}
@@ -76,11 +112,19 @@ func (h *SupportHandler) SupportQuery(c *gin.Context) {
 		return
 	}
 
+	// Apply confidence-based fallback (Phase 4 + API contract)
+	isFallback := resp.Confidence < h.confidenceThreshold
+	answer := resp.Content
+	if isFallback {
+		answer = "We are unable to confidently answer your question. Please contact customer support."
+	}
+
 	// Return response
 	c.JSON(http.StatusOK, SupportQueryResponse{
-		Answer:     resp.Content,
+		Answer:     answer,
 		Confidence: resp.Confidence,
 		TenantID:   req.TenantID,
 		Language:   req.Language,
+		Fallback:   isFallback,
 	})
 }
