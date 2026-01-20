@@ -33,3 +33,5 @@ go.work.sum
 
 ./ai-dev-tasks/
 ./tasks/
+# Local AI prompt/task helper repo (do not commit)
+ai-dev-tasks/
