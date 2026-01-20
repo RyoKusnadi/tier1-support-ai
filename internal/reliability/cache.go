@@ -65,6 +65,3 @@ func (c *ResponseCache[T]) Set(key string, value T) {
 	}
 	c.mu.Unlock()
 }
-
-
-

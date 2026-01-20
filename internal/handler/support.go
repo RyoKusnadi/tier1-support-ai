@@ -88,11 +88,7 @@ func (h *SupportHandler) SupportQuery(c *gin.Context) {
 	// Phase 6: attach tenant_id to request context for logging/middleware
 	c.Set("tenant_id", req.TenantID)
 
-	// Phase 5: per-tenant rate limiting
 	if h.rateLimiter != nil && !h.rateLimiter.Allow(req.TenantID) {
-		if h.metrics != nil {
-			h.metrics.RateLimitedTotal.Add(1)
-		}
 		logger.Error("rate limit exceeded", map[string]interface{}{
 			"tenant_id": req.TenantID,
 		})

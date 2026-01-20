@@ -55,6 +55,3 @@ func (b *BudgetGuard) Remaining(tenantID string) (int, bool, time.Time) {
 	}
 	return remaining, true, u.WindowStart.Add(u.Window)
 }
-
-
-
