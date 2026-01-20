@@ -12,12 +12,12 @@ import (
 // Metrics is a small in-process metrics registry (Phase 6).
 // It is intentionally dependency-free; can be swapped for Prometheus later.
 type Metrics struct {
-	RequestsTotal    atomic.Int64
-	ErrorsTotal      atomic.Int64
-	RateLimitedTotal atomic.Int64
+	RequestsTotal      atomic.Int64
+	ErrorsTotal        atomic.Int64
+	RateLimitedTotal   atomic.Int64
 	BudgetBlockedTotal atomic.Int64
-	CacheHitsTotal   atomic.Int64
-	CacheMissesTotal atomic.Int64
+	CacheHitsTotal     atomic.Int64
+	CacheMissesTotal   atomic.Int64
 
 	LatencyCount atomic.Int64
 	LatencySumMs atomic.Int64
@@ -43,15 +43,15 @@ func (m *Metrics) Snapshot() map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"requests_total":        m.RequestsTotal.Load(),
-		"errors_total":          m.ErrorsTotal.Load(),
-		"rate_limited_total":    m.RateLimitedTotal.Load(),
-		"budget_blocked_total":  m.BudgetBlockedTotal.Load(),
-		"cache_hits_total":      m.CacheHitsTotal.Load(),
-		"cache_misses_total":    m.CacheMissesTotal.Load(),
-		"latency_count":         count,
-		"latency_sum_ms":        sum,
-		"latency_avg_ms":        avg,
+		"requests_total":       m.RequestsTotal.Load(),
+		"errors_total":         m.ErrorsTotal.Load(),
+		"rate_limited_total":   m.RateLimitedTotal.Load(),
+		"budget_blocked_total": m.BudgetBlockedTotal.Load(),
+		"cache_hits_total":     m.CacheHitsTotal.Load(),
+		"cache_misses_total":   m.CacheMissesTotal.Load(),
+		"latency_count":        count,
+		"latency_sum_ms":       sum,
+		"latency_avg_ms":       avg,
 	}
 }
 
@@ -73,5 +73,4 @@ func Middleware(m *Metrics) gin.HandlerFunc {
 
 // Ensure we don't accidentally import net/http without using it in some build tags.
 var _ = http.StatusOK
-
 

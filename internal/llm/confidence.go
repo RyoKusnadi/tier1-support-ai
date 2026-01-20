@@ -74,3 +74,4 @@ func (cs *ConfidenceScorer) IsHighConfidence(confidence float64, threshold float
 	return confidence >= threshold
 }
 
+

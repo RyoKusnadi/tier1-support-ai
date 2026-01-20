@@ -32,13 +32,13 @@ func RequestLogger() gin.HandlerFunc {
 		status := c.Writer.Status()
 
 		fields := map[string]interface{}{
-			"request_id":  reqID,
-			"method":      c.Request.Method,
-			"path":        c.FullPath(),
-			"status":      status,
-			"latency_ms":  latency.Milliseconds(),
-			"client_ip":   c.ClientIP(),
-			"user_agent":  c.Request.UserAgent(),
+			"request_id": reqID,
+			"method":     c.Request.Method,
+			"path":       c.FullPath(),
+			"status":     status,
+			"latency_ms": latency.Milliseconds(),
+			"client_ip":  c.ClientIP(),
+			"user_agent": c.Request.UserAgent(),
 		}
 		// Tenant ID is best-effort; handlers can set it.
 		if tenantID, ok := c.Get("tenant_id"); ok {
@@ -54,5 +54,4 @@ func newRequestID() string {
 	_, _ = rand.Read(b[:])
 	return hex.EncodeToString(b[:])
 }
-
 
