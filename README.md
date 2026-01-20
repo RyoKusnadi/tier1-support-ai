@@ -148,10 +148,10 @@ Handles Tier-1 customer support questions using AI-assisted responses.
 - [x] Confidence scoring strategy
 
 ### Phase 4 — Knowledge Retrieval
-- [ ] Knowledge document model
-- [ ] Basic retrieval (in-memory / stub)
-- [ ] Retrieval-Augmented Generation (RAG) flow
-- [ ] Fallback when no relevant knowledge found
+- [x] Knowledge document model
+- [x] Basic retrieval (in-memory / stub)
+- [x] Retrieval-Augmented Generation (RAG) flow
+- [x] Fallback when no relevant knowledge found
 
 ### Phase 5 — Reliability & Cost Control
 - [ ] Rate limiting per tenant
