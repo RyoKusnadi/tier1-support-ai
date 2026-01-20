@@ -13,6 +13,8 @@ import (
 	"github.com/RyoKusnadi/tier1-support-ai/internal/handler"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/llm"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/logger"
+	"github.com/RyoKusnadi/tier1-support-ai/internal/middleware"
+	"github.com/RyoKusnadi/tier1-support-ai/internal/observability"
 	"github.com/RyoKusnadi/tier1-support-ai/internal/reliability"
 	"github.com/gin-gonic/gin"
 )
@@ -48,12 +50,16 @@ func main() {
 	}
 
 	// Initialize handlers
-	supportHandler := handler.NewSupportHandler(llmClient, rateLimiter, responseCache, tokenUsageTracker, budgetGuard)
+	metrics := observability.New()
+	supportHandler := handler.NewSupportHandler(llmClient, rateLimiter, responseCache, tokenUsageTracker, budgetGuard, metrics)
 
 	router := gin.New()
 	router.Use(gin.Recovery())
+	router.Use(middleware.RequestLogger())
+	router.Use(observability.Middleware(metrics))
 
 	router.GET("/health", handler.Health)
+	router.GET("/metrics", metrics.Handler)
 
 	// Register support query endpoint
 	v1 := router.Group("/v1")
